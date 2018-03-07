@@ -38,8 +38,7 @@ extern "C" {
 /* ************************************************************************//**
  * \brief	Initialization of the timing module
  *
- * This function initialize the time module component. An init is only necessary
- * for the EOS module, because the Fixed Interval Timer (FIT) will be adjusted
+ * This function initialize the time module component.
  *
  * \return	error code (currently always EOK)
  * ****************************************************************************/
