@@ -25,12 +25,21 @@
 
 #ifdef CORTEX_M3
 	#include <stm32f1xx.h>
+	#include <stm32f1xx_hal_rcc.h>		// RCC_* functions
+	#include <stm32f1xx_hal_dma.h>		// Recursively required from tm32f1xx_hal_tim.h
+	#include <stm32f1xx_hal_tim.h>		// TIM_* functions
 #elif CORTEX_M4
 	#include <stm32f4xx.h>
+	#include <stm32f4xx_hal_rcc.h>		// RCC_* functions
+	#include <stm32f4xx_hal_dma.h>		// Recursively required from tm32f1xx_hal_tim.h
+	#include <stm32f4xx_hal_tim.h>		// TIM_* functions
 #else
 	#error No Architecture is set at lib_clock
 #endif
 
+
+static TIM_HandleTypeDef s_lib_delay__tim_hdl;
+uint16_t Ftim_MHz;		// timer speed in MHz
 
 /* ************************************************************************//**
  * \brief	Initialization of the timing module
@@ -42,6 +51,44 @@
  * ****************************************************************************/
 int lib_clock__init(void)
 {
+	TIM_Base_InitTypeDef init_arg;	// universal temporary init structure for timer configuration
+	int Ftim6_Hz;
+
+	/* configure hardware timer 6 */
+
+	/* TIM4 clock enable */
+	__HAL_RCC_TIM4_CLK_ENABLE();
+
+	/* setup Timer 4 for counting mode */
+	/* Time Base configuration */
+	init_arg.Prescaler 			= 1;										// Specifies the prescaler value used to divide the TIM clock. (0 = div by 1) This parameter can be a number between 0x0000 and 0xFFFF
+	init_arg.CounterMode 		= TIM_COUNTERMODE_UP;
+	init_arg.Period 			= 0xFFFF;						// Auto reload register (upcounting mode => reset cnt when value is hit, and throw an overflow interrupt)
+	init_arg.ClockDivision 		= TIM_CLOCKDIVISION_DIV1;		// not available for TIM6 and 7 => will be ignored
+	init_arg.RepetitionCounter 	= 0;							// start with 0 again after overflow
+
+	s_lib_delay__tim_hdl.Init = init_arg;
+	s_lib_delay__tim_hdl.Instance = TIM4;
+
+	HAL_TIM_Base_Init(&s_lib_delay__tim_hdl);
+
+	/* TIM6 counter enable (free running) */
+	__HAL_TIM_ENABLE(&s_lib_delay__tim_hdl);
+
+	// clock tree: SYSCLK --AHBprescaler--> HCLK --APB1prescaler--> PCLK1 --TIM6multiplier--> to TIM 2,3,4,6,7
+	// clock tim6: Input=PCLK1 (APB1 clock) (multiplied x2 in case of APB1 clock divider > 1 !!! (RCC_CFGR.PRE1[10:8].msb[10] = 1))
+	if (RCC->CFGR & RCC_CFGR_PPRE1_2)
+		Ftim6_Hz = HAL_RCC_GetPCLK1Freq() * 2;
+	else
+		Ftim6_Hz = HAL_RCC_GetPCLK2Freq();
+
+	// Timer internal prescaler
+	Ftim6_Hz /= ((TIM4->PSC) + 1);
+
+	// set info global available
+	Ftim_MHz = Ftim6_Hz / 1000000;
+
+
 	return EOK;
 }
 
