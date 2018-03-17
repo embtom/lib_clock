@@ -61,9 +61,9 @@ int lib_clock__init(void)
 
 	/* setup Timer 4 for counting mode */
 	/* Time Base configuration */
-	init_arg.Prescaler 			= 1;										// Specifies the prescaler value used to divide the TIM clock. (0 = div by 1) This parameter can be a number between 0x0000 and 0xFFFF
+	init_arg.Prescaler 			= 65536;										// Specifies the prescaler value used to divide the TIM clock. (0 = div by 1) This parameter can be a number between 0x0000 and 0xFFFF
 	init_arg.CounterMode 		= TIM_COUNTERMODE_UP;
-	init_arg.Period 			= 0xFFFF;						// Auto reload register (upcounting mode => reset cnt when value is hit, and throw an overflow interrupt)
+	init_arg.Period 			= 4000;						// Auto reload register (upcounting mode => reset cnt when value is hit, and throw an overflow interrupt)
 	init_arg.ClockDivision 		= TIM_CLOCKDIVISION_DIV1;		// not available for TIM6 and 7 => will be ignored
 	init_arg.RepetitionCounter 	= 0;							// start with 0 again after overflow
 
@@ -74,6 +74,9 @@ int lib_clock__init(void)
 
 	/* TIM6 counter enable (free running) */
 	__HAL_TIM_ENABLE(&s_lib_delay__tim_hdl);
+	__HAL_TIM_ENABLE_IT(&s_lib_delay__tim_hdl, TIM_IT_UPDATE);
+
+	// TIM4->DIER = TIM_DIER_UIE;
 
 	// clock tree: SYSCLK --AHBprescaler--> HCLK --APB1prescaler--> PCLK1 --TIM6multiplier--> to TIM 2,3,4,6,7
 	// clock tim6: Input=PCLK1 (APB1 clock) (multiplied x2 in case of APB1 clock divider > 1 !!! (RCC_CFGR.PRE1[10:8].msb[10] = 1))
@@ -87,6 +90,9 @@ int lib_clock__init(void)
 
 	// set info global available
 	Ftim_MHz = Ftim6_Hz / 1000000;
+
+
+	NVIC_EnableIRQ(TIM4_IRQn); // Enable TIM16 IRQ
 
 
 	return EOK;
@@ -195,6 +201,18 @@ void lib_clock__delay_us(uint32_t _delay)
  * ****************************************************************************/
 uint64_t lib_clock__get_clock_ticks(void)
 {
+
+}
+
+
+void TIM4_IRQHandler (void)
+{
+	static unsigned int tim4_count = 0;
+
+	 __HAL_TIM_CLEAR_FLAG(&s_lib_delay__tim_hdl, TIM_IT_UPDATE);
+
+//	TIM4->SR = 0; //~(TIM_IT_UPDATE);
+	tim4_count ++;
 
 }
 
