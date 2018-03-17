@@ -15,7 +15,7 @@
  *  
  */
 
-
+/* https://stackoverflow.com/questions/29010847/how-to-make-a-microsecond-precise-timer-on-the-stm32l-discovery-arm-board*/
 
 /* *******************************************************************
  * includes
@@ -61,7 +61,7 @@ int lib_clock__init(void)
 
 	/* setup Timer 4 for counting mode */
 	/* Time Base configuration */
-	init_arg.Prescaler 			= 65536;										// Specifies the prescaler value used to divide the TIM clock. (0 = div by 1) This parameter can be a number between 0x0000 and 0xFFFF
+	init_arg.Prescaler 			= 65535;										// Specifies the prescaler value used to divide the TIM clock. (0 = div by 1) This parameter can be a number between 0x0000 and 0xFFFF
 	init_arg.CounterMode 		= TIM_COUNTERMODE_UP;
 	init_arg.Period 			= 4000;						// Auto reload register (upcounting mode => reset cnt when value is hit, and throw an overflow interrupt)
 	init_arg.ClockDivision 		= TIM_CLOCKDIVISION_DIV1;		// not available for TIM6 and 7 => will be ignored
