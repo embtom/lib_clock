@@ -41,6 +41,13 @@
  * defines
  * ******************************************************************/
 
+static inline __attribute__((always_inline)) void __DISABLE_IRQ(void)
+{__asm volatile("CPSID i");}
+
+/*enable all interrupts*/
+static inline __attribute__((always_inline)) void __ENABLE_IRQ(void)
+{__asm volatile("CPSIE i");}
+
 #define JF_TIM_TIMER		  TIM4;
 #define JF_MAX_TIM_VALUE      (0xFFFF)    // 16bit counters
 
@@ -117,10 +124,13 @@ uint64_t lib_clock__get_time_ns(void)
 {
 	uint64_t ns;
 
+	__DISABLE_IRQ();
 	ns = s_milliseconds_ticks_64bits * 1000000ULL;
 	if (s_jf.value) {
-		ns += (uint64_t)s_jf.value * 1000ULL;
+		ns += *((uint64_t*)s_jf.value) * 1000ULL;
 	}
+	__ENABLE_IRQ();
+
 	return ns;
 }
 
@@ -138,10 +148,12 @@ uint64_t lib_clock__get_time_us(void)
 {
 	uint64_t us;
 
+	__DISABLE_IRQ();
 	us = s_milliseconds_ticks_64bits * 1000ULL;
 	if (s_jf.value) {
-		us += (uint64_t)s_jf.value;
+		us += *s_jf.value;
 	}
+	__ENABLE_IRQ();
 	return us;
 
 }
