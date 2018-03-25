@@ -14,5 +14,5 @@ ENDIF()
 
 #Generate the static library from the sources
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-target_link_libraries(${PROJECT_NAME} itf_lib_convention itf_lib_clock dev_framework_STM32F1_CUBE)
+target_link_libraries(${PROJECT_NAME} itf_lib_convention itf_lib_clock dev_framework_STM32F1_CUBE lib_isr)
 #target_include_directories(${PROJECT_NAME} PUBLIC ${itf_lib_convention_SOURCE_DIR})

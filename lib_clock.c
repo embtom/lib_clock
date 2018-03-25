@@ -23,6 +23,10 @@
 #include <lib_clock.h>
 #include <lib_convention__errno.h>
 
+/* frame */
+#include <lib_isr.h>
+
+
 #ifdef CORTEX_M3
 	#include <stm32f1xx.h>
 	#include <stm32f1xx_hal_rcc.h>		// RCC_* functions
@@ -68,14 +72,16 @@ typedef volatile struct {
 /* *******************************************************************
  * static function declarations
  * ******************************************************************/
-static int jf_check_usec (int32_t _usec);
-static jiffy_t jf_per_usec (jf_t *_jf);
-static int JF_setfreq (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies);
+static int lib_clock__jf_check_usec (int32_t _usec);
+static jiffy_t lib_clock__jf_per_usec (jf_t *_jf);
+static int lib_clock__jf_timer_setfreq (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies);
+static void lib_clock__jf_timer_event(IRQn_Type _isr_vector, unsigned int _vector, void *_arg);
 
 /* *******************************************************************
  * (static) variables declarations
  * ******************************************************************/
 static jf_t s_jf;
+static lib_isr_hdl_t *s_jf_isr;
 static unsigned int s_milliseconds_ticks;
 static uint64_t s_milliseconds_ticks_64bits;
 
@@ -89,8 +95,11 @@ static uint64_t s_milliseconds_ticks_64bits;
  * ****************************************************************************/
 int lib_clock__init(void)
 {
+	int ret;
 	s_milliseconds_ticks_64bits = 0;
 	s_milliseconds_ticks = 0;
+
+	ret = lib_isr__attach(&s_jf_isr,TIM4_IRQn,&lib_clock__jf_timer_event, NULL);
 	jf_init(&s_jf,1000000, 1000);  // 1MHz timer, 1000 counts, 1 usec per count
 	return EOK;
 }
@@ -236,13 +245,13 @@ uint64_t lib_clock__get_clock_ticks(void)
 int jf_init (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies)
 {
 	int ret;
-	ret = JF_setfreq (_jf,_jf_freq, _jiffies);
+	ret = lib_clock__jf_timer_setfreq (_jf,_jf_freq, _jiffies);
     if (ret < EOK) {
     	return ret;
     }
     _jf->jiffies = _jiffies;
     _jf->freq = _jf_freq;
-    _jf->jpus = jf_per_usec (_jf);
+    _jf->jpus = lib_clock__jf_per_usec (_jf);
    return EOK;
 }
 
@@ -256,7 +265,7 @@ int jf_init (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies)
  * \param
  *    usec     Time in usec for delay
  */
- static int jf_check_usec (int32_t _usec)
+ static int lib_clock__jf_check_usec (int32_t _usec)
  {
    static jiffy_t m1=-1, cnt;
    jiffy_t m, m2;
@@ -280,7 +289,7 @@ int jf_init (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies)
 }
 
  // Return the systems best approximation for jiffies per usec
- static jiffy_t jf_per_usec (jf_t *_jf)
+ static jiffy_t lib_clock__jf_per_usec (jf_t *_jf)
  {
     jiffy_t jf = _jf->freq / 1000000;
 
@@ -296,7 +305,7 @@ int jf_init (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies)
  * \param jf_freq  The TIMER's frequency
  * \param jiffies  The TIMER's max count value
  */
-static int JF_setfreq (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies)
+static int lib_clock__jf_timer_setfreq (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies)
 {
 	TIM_Base_InitTypeDef init_arg;	// universal temporary init structure for timer configuration
 	int Ftim_Hz;
@@ -331,11 +340,10 @@ static int JF_setfreq (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies)
 	// Timer internal prescaler
 	Ftim_Hz /= ((TIM4->PSC) + 1);
 
-	NVIC_EnableIRQ(TIM4_IRQn); // Enable TIM16 IRQ
 	return EOK;
 }
 
-void TIM4_IRQHandler (void)
+static void lib_clock__jf_timer_event(IRQn_Type _isr_vector, unsigned int _vector, void *_arg)
 {
 	unsigned int tick_time = 0;
 
@@ -345,5 +353,7 @@ void TIM4_IRQHandler (void)
 	s_milliseconds_ticks += tick_time;
 	s_milliseconds_ticks_64bits += tick_time;
 	 __HAL_TIM_CLEAR_FLAG(&s_jf.timer_hdl, TIM_IT_UPDATE);
+
 }
+
 
