@@ -72,6 +72,7 @@ typedef volatile struct {
 /* *******************************************************************
  * static function declarations
  * ******************************************************************/
+static int lib_clock__jf_init (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies);
 static int lib_clock__jf_check_usec (int32_t _usec);
 static jiffy_t lib_clock__jf_per_usec (jf_t *_jf);
 static int lib_clock__jf_timer_setfreq (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies);
@@ -100,7 +101,11 @@ int lib_clock__init(void)
 	s_milliseconds_ticks = 0;
 
 	ret = lib_isr__attach(&s_jf_isr,TIM4_IRQn,&lib_clock__jf_timer_event, NULL);
-	jf_init(&s_jf,1000000, 1000);  // 1MHz timer, 1000 counts, 1 usec per count
+	if (ret < EOK) {
+		return -ESTD_FAULT;
+	}
+
+	lib_clock__jf_init(&s_jf,1000000, 1000);  // 1MHz timer, 1000 counts, 1 usec per count
 	return EOK;
 }
 
@@ -242,7 +247,7 @@ uint64_t lib_clock__get_clock_ticks(void)
 
 
 // Initialise the jf to a desired jiffy frequency f
-int jf_init (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies)
+static int lib_clock__jf_init (jf_t *_jf, uint32_t _jf_freq, uint32_t _jiffies)
 {
 	int ret;
 	ret = lib_clock__jf_timer_setfreq (_jf,_jf_freq, _jiffies);
