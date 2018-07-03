@@ -339,11 +339,10 @@ static int lib_clock__jf_timer_setfreq (jf_t *_jf, uint32_t _jf_freq, uint32_t _
 	HAL_TIM_Base_Init(&_jf->timer_hdl);
 	_jf->value = &_jf->timer_hdl.Instance->CNT;
 
+	__HAL_TIM_CLEAR_FLAG(&_jf->timer_hdl, TIM_IT_UPDATE | TIM_IT_CC1 | TIM_IT_CC2 | TIM_IT_CC3 | TIM_IT_CC4);
 	__HAL_TIM_ENABLE(&_jf->timer_hdl);
 	__HAL_TIM_ENABLE_IT(&_jf->timer_hdl, TIM_IT_UPDATE);
 
-	// Timer internal prescaler
-	Ftim_Hz /= ((TIM4->PSC) + 1);
 
 	return EOK;
 }
