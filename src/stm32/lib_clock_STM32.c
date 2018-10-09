@@ -58,11 +58,11 @@ static inline __attribute__((always_inline)) void __ENABLE_IRQ(void)
 /* *******************************************************************
  * custom data types (e.g. enumerations, structures, unions)
  * ******************************************************************/
-typedef int32_t   jiffy_t;    // Jiffy type 4 byte integer
+typedef volatile int32_t   jiffy_t;    // Jiffy type 4 byte integer
 typedef TIM_HandleTypeDef jf_timer_t;
 
-typedef volatile struct {
-	jf_timer_t	timer_hdl;
+typedef struct {
+	TIM_HandleTypeDef	timer_hdl;
 	jiffy_t		*value;        // Pointer to timers current value
 	uint32_t    freq;          // timer's  frequency
 	uint32_t    jiffies;       // jiffies max value (timer's max value)
@@ -82,7 +82,7 @@ static void lib_clock__jf_timer_event(IRQn_Type _isr_vector, unsigned int _vecto
  * (static) variables declarations
  * ******************************************************************/
 static jf_t s_jf;
-static lib_isr_hdl_t *s_jf_isr;
+static lib_isr_hdl_t s_jf_isr;
 static unsigned int s_milliseconds_ticks;
 static uint64_t s_milliseconds_ticks_64bits;
 
@@ -337,7 +337,7 @@ static int lib_clock__jf_timer_setfreq (jf_t *_jf, uint32_t _jf_freq, uint32_t _
 	_jf->timer_hdl.Instance = JF_TIM_TIMER;
 
 	HAL_TIM_Base_Init(&_jf->timer_hdl);
-	_jf->value = &_jf->timer_hdl.Instance->CNT;
+	_jf->value = (jiffy_t*) &_jf->timer_hdl.Instance->CNT;
 
 	__HAL_TIM_CLEAR_FLAG(&_jf->timer_hdl, TIM_IT_UPDATE | TIM_IT_CC1 | TIM_IT_CC2 | TIM_IT_CC3 | TIM_IT_CC4);
 	__HAL_TIM_ENABLE(&_jf->timer_hdl);
