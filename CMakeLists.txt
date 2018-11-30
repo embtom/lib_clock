@@ -28,11 +28,9 @@ GET_PROPERTY(LIB_CLOCK_DEPEND              GLOBAL PROPERTY LIB_CLOCK_ARCH_DEPEND
 SET(LIB_CLOCK_DEPEND ${LIB_CLOCK_DEPEND} itf_lib_convention)
 SET(LIB_CLOCK_PRIVATE_DEFINITION ${LIB_CLOCK_PRIVATE_DEFINITION} )
 
-#message(STATUS "##### ${LIB_CLOCK_SOURCE_C}")
-#message(STATUS "##### ${LIB_CLOCK_PRIVATE_DEFINITION}")
-#message(STATUS "##### ${LIB_CLOCK_DEPEND} ")
-
-#Generate the static library from the sources
+#######################################################################################
+#Build target settings
+#######################################################################################
 add_library(${PROJECT_NAME} STATIC ${LIB_CLOCK_SOURCE_C})
 target_link_libraries(${PROJECT_NAME} ${LIB_CLOCK_DEPEND})
 target_include_directories(${PROJECT_NAME} PUBLIC ./include)
